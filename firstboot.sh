@@ -1,6 +1,6 @@
 #!/bin/bash
 firstboot() {
-    sed -i 's/127.0.1.1/192.168.2.19/' /etc/hosts
+    sed -i 's/127.0.1.1/10.71.6.98/' /etc/hosts
     apt update
     apt full-upgrade -y
     apt install proxmox-ve -y
