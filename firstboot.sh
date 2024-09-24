@@ -42,6 +42,11 @@ firstboot() {
     log "Reloading systemd daemon"
     systemctl daemon-reload
 
+    log "Removing Nag Message"
+    NAGTOKEN="data.status.toLowerCase() !== 'active'"
+    NAGFILE="/usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js"
+    sed -i.orig "s/$NAGTOKEN/false/g" "$NAGFILE"
+
     log "Downloading second boot script"
     curl -sSL 'https://raw.githubusercontent.com/onchaosteam/FAK/refs/heads/main/secondboot.sh' -o "/root/secondboot.sh" >> $LOGFILE 2>&1 | tee -a $TTY
     curl -sSL 'https://raw.githubusercontent.com/onchaosteam/FAK/refs/heads/main/secondboot.service' -o "/etc/systemd/system/secondboot.service" >> $LOGFILE 2>&1 | tee -a $TTY
