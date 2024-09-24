@@ -1,0 +1,9 @@
+[Unit]
+Description=Provisioning
+Before=getty@tty1.service
+
+[Service]
+ExecStart=/root/secondboot.sh
+
+[Install]
+WantedBy=getty.target
