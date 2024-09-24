@@ -3,7 +3,7 @@
 latecommands() {
 
     # Modify Hosts file
-    sed -i 's/127.0.1.1/192.168.2.19/' /etc/hosts
+    sed -i 's/127.0.1.1/10.71.6.98/' /etc/hosts
 
     # Add PVE Repository to install PVE Kernel package
     echo "deb [arch=amd64] http://download.proxmox.com/debian/pve bookworm pve-no-subscription" > /etc/apt/sources.list.d/pve-install-repo.list
