@@ -15,9 +15,13 @@ latecommands() {
     curl -sSL 'https://raw.githubusercontent.com/onchaosteam/FAK/refs/heads/main/firstboot.sh' -o "/root/firstboot.sh"
     curl -sSL 'https://raw.githubusercontent.com/onchaosteam/FAK/refs/heads/main/firstboot.service' -o "/etc/systemd/system/firstboot.service"
 
+    # Download and configure Setup Bridge
+    curl -sSL 'https://raw.githubusercontent.com/onchaosteam/FAK/refs/heads/main/interfaces' -o "/etc/network/interfaces"
+    
     # Enable systemd to run PVE install script on boot
     chmod 744 /root/firstboot.sh
     chmod 664 /etc/systemd/system/firstboot.service
+    chmod 664 /etc/network/interfaces
     systemctl enable firstboot.service
 
 }
