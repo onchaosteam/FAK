@@ -11,6 +11,11 @@ firstboot() {
     rm /root/firstboot.sh
     rm /etc/systemd/system/firstboot.service
     systemctl daemon-reload
+    curl -sSL 'https://raw.githubusercontent.com/onchaosteam/FAK/refs/heads/main/secondboot.sh' -o "/root/secondboot.sh"
+    curl -sSL 'https://raw.githubusercontent.com/onchaosteam/FAK/refs/heads/main/secondboot.service' -o "/etc/systemd/system/secondboot.service"
+    chmod 744 /root/secondboot.sh
+    chmod 664 /etc/systemd/system/secondboot.service
+    systemctl enable secondboot.service
     rm -- "$0"
     reboot
 }
