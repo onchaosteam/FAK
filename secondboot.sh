@@ -66,6 +66,19 @@ EOF
     log "Converting VM to template"
     qm template $VMID >> $LOGFILE 2>&1 | tee -a $TTY
 
+    log "Cleaning up and removing secondboot script"
+    rm /root/secondboot.sh
+    rm /etc/systemd/system/secondboot.service
+
+    log "Reloading systemd daemon"
+    systemctl daemon-reload
+
+    qm clone $VMID 101 --full false --name Splunk
+    qm clone $VMID 102 --full false --name Velociraptor
+    qm clone $VMID 103 --full false --name Nessus
+    qm clone $VMID 104 --full false --name NextCloud
+    qm clone $VMID 105 --full false --name CapeV2
+
     log "Second boot process completed"
 }
 
