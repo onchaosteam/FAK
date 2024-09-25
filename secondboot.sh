@@ -31,7 +31,6 @@ secondboot() {
     qm create $VMID --name "ubuntu-2404-template" --ostype l26 \
         --memory 2048 --balloon 0 \
         --agent 1 \
-        --bios ovmf --machine q35 --efidisk0 $STORAGE:0,pre-enrolled-keys=0 \
         --cpu host --cores 2 --numa 1 \
         --vga serial0 --serial0 socket \
         --net0 virtio,bridge=$BRIDGE,mtu=1 >> $LOGFILE 2>&1 | tee -a $TTY
@@ -40,7 +39,7 @@ secondboot() {
     qm importdisk $VMID noble-server-cloudimg-amd64.img $STORAGE >> $LOGFILE 2>&1 | tee -a $TTY
 
     log "Setting VM configuration"
-    qm set $VMID --scsihw virtio-scsi-pci --virtio0 $STORAGE:vm-$VMID-disk-1,discard=on >> $LOGFILE 2>&1 | tee -a $TTY
+    qm set $VMID --scsihw virtio-scsi-pci --virtio0 $STORAGE:9001/vm-$VMID-disk-0.raw,discard=on >> $LOGFILE 2>&1 | tee -a $TTY
     qm set $VMID --boot order=virtio0 >> $LOGFILE 2>&1 | tee -a $TTY
     qm set $VMID --ide2 $STORAGE:cloudinit >> $LOGFILE 2>&1 | tee -a $TTY
 
