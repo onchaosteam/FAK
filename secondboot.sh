@@ -79,6 +79,8 @@ EOF
     qm clone $VMID 104 --full false --name NextCloud
     qm clone $VMID 105 --full false --name CapeV2
 
+    qm start 101
+
     log "Second boot process completed"
 }
 
