@@ -18,6 +18,9 @@ secondboot() {
     log "Sleeping for 1 minutes to wait for Proxmox to start up"
     sleep 1m >> $LOGFILE 2>&1 | tee -a $TTY
     
+    log "Installing Ansible"
+    apt install ansible -y >> $LOGFILE 2>&1 | tee -a $TTY
+    
     log "Downloading Ubuntu cloud image"
     wget -qN https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img -O noble-server-cloudimg-amd64.img >> $LOGFILE 2>&1 | tee -a $TTY
 
