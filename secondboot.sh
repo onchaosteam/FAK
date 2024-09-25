@@ -20,6 +20,7 @@ secondboot() {
     
     log "Installing Ansible"
     apt install ansible -y >> $LOGFILE 2>&1 | tee -a $TTY
+    ansible-galaxy collection install community.general
     
     log "Downloading Ubuntu cloud image"
     wget -qN https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img -O noble-server-cloudimg-amd64.img >> $LOGFILE 2>&1 | tee -a $TTY
