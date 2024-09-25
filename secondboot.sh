@@ -15,14 +15,14 @@ secondboot() {
 
     set -x
 
+    log "Sleeping for 1 minutes to wait for Proxmox to start up"
+    sleep 1m >> $LOGFILE 2>&1 | tee -a $TTY
+    
     log "Downloading Ubuntu cloud image"
     wget -qN https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img -O noble-server-cloudimg-amd64.img >> $LOGFILE 2>&1 | tee -a $TTY
 
     log "Resizing image"
     qemu-img resize noble-server-cloudimg-amd64.img 10G >> $LOGFILE 2>&1 | tee -a $TTY
-
-    log "Sleeping for 2 minutes to wait for Proxmox to start up"
-    sleep 2m >> $LOGFILE 2>&1 | tee -a $TTY
 
     log "Destroying existing VM with VMID $VMID if exists"
     qm destroy $VMID >> $LOGFILE 2>&1 | tee -a $TTY
