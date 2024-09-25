@@ -20,6 +20,9 @@ secondboot() {
     
     log "Installing Ansible"
     apt install ansible -y >> $LOGFILE 2>&1 | tee -a $TTY
+    log "Installing Pip"
+    apt install pip -y >> $LOGFILE 2>&1 | tee -a $TTY
+    pip install proxmoxer --break-system-package
     ansible-galaxy collection install community.general
     
     log "Downloading Ubuntu cloud image"
