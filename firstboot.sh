@@ -22,10 +22,7 @@ firstboot() {
 
     log "Installing Proxmox VE"
     apt install proxmox-ve -y >> $LOGFILE 2>&1 | tee -a $TTY
-    
-    log "Installing Ansible"
-    apt install ansible -y >> $LOGFILE 2>&1 | tee -a $TTY
-    
+       
     log "Removing unused Linux images"
     apt remove linux-image-amd64 'linux-image-6.1*' -y >> $LOGFILE 2>&1 | tee -a $TTY
 
