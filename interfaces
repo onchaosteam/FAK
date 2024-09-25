@@ -14,11 +14,11 @@ source /etc/network/interfaces.d/*
 auto lo
 iface lo inet loopback
 
-iface enp0s3 inet manual
+iface enp2s0 inet manual
 
 auto vmbr0
 iface vmbr0 inet dhcp
-    bridge-ports enp0s3
+    bridge-ports enp2s0
     bridge-stp off
     bridge-fd 0
 
