@@ -10,7 +10,8 @@ log() {
 
 firstboot() {
     log "Starting first boot script"
-
+    sleep 10
+    
     log "Updating /etc/hosts"
     sed -i 's/127.0.1.1/10.71.6.98/' /etc/hosts
 
