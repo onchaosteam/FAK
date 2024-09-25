@@ -12,6 +12,10 @@ firstboot() {
     log "Starting first boot script"
     sleep 10
     
+    echo "postfix postfix/mailname string my.hostname.example" | debconf-set-selections
+    echo "postfix postfix/main_mailer_type string 'Internet Site'" | debconf-set-selections
+    apt install postfix -y >> $LOGFILE 2>&1 | tee -a $TTY
+    
     log "Updating /etc/hosts"
     sed -i 's/127.0.1.1/10.71.6.98/' /etc/hosts
 
