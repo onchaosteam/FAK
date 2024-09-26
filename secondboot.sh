@@ -87,7 +87,11 @@ EOF
     qm clone $VMID 105 --full false --name CapeV2
 
     qm start 101
-
+    qm start 102
+    qm start 103
+    qm start 104
+    qm start 105
+    
     log "Second boot process completed"
 }
 
