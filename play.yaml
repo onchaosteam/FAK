@@ -1,0 +1,115 @@
+---
+
+- hosts: localhost
+  remote_user: root
+  vars:
+   target_dir: /tmp/build/
+   iso_arch: amd64
+   release: 12.7.0
+
+  tasks:
+  - name: Configure the target system and install dependencies
+    become: yes
+    package:
+      name:
+        - xorriso
+        - curl
+        - isolinux
+      state: present
+
+  - name: Delete Target Dir if exists (Cleanup) 
+    file:
+      path: "{{ target_dir }}"
+      state: absent
+
+  - name: Create the temporary directory
+    file:
+      path: "{{ target_dir }}"
+      state: directory
+
+  - copy: 
+      src: "{{ playbook_dir }}/debian-{{ release }}-{{ iso_arch }}-netinst.iso"
+      dest: "{{ target_dir }}"
+      force: no
+
+  - name: Create the extraction directory
+    file:
+      path: "{{ target_dir }}/iso"
+      state: directory
+
+  - name: Extract the ISO
+    shell:
+      cmd: "xorriso -osirrox on -indev {{ target_dir }}/debian-{{ release }}-{{ iso_arch }}-netinst.iso -extract / {{ target_dir }}/iso"
+
+  - name: Fix extracted ISO mode
+    file:
+      path: "{{ target_dir }}/iso"
+      mode: "u+w"
+      recurse: yes
+      follow: no
+
+  - name: Download preseed.cfg
+    ansible.builtin.get_url:
+      url: "https://raw.githubusercontent.com/onchaosteam/FAK/refs/heads/main/preseedNVM.cfg"
+      dest: "{{ target_dir }}/iso/preseed.cfg"
+
+  - name: Extract initrd.gz 
+    shell:
+      cmd: "gunzip {{ target_dir }}/iso/install.amd/initrd"
+
+  - name: Pass preseed.cfg to initrd.gz
+    shell:
+      cmd: "echo {{ target_dir }}/iso/preseed.cfg | cpio -H newc -o -A -F {{ target_dir }}/iso/install.amd/initrd"
+
+  - name: Rezip initrd
+    shell:
+      cmd: "gzip {{ target_dir }}/iso/install.amd/initrd"
+
+  - name: Pass autoinstall flag to installer
+    shell:
+      cmd: "sed -i 's/vesamenu.c32/auto/' {{ target_dir }}/iso/isolinux/isolinux.cfg"
+  
+  - name: Add preseed.cfg iso filepath to adtxt.cfg
+    ansible.builtin.lineinfile:
+      path: "{{ target_dir }}/iso/isolinux/adtxt.cfg"
+      search_string: '  append auto=true priority=critical vga=788 initrd=/install.amd/initrd.gz --- quiet '
+      line: '    append auto=true priority=critical vga=788 initrd=/install.amd/initrd.gz --- quiet file=/cdrom/preseed.cfg '
+
+  - name: Add preseed.cfg iso filepath to txt.cfg
+    ansible.builtin.lineinfile:
+      path: "{{ target_dir }}/iso/isolinux/txt.cfg"
+      search_string: '  append vga=788 initrd=/install.amd/initrd.gz --- quiet '
+      line: '    append vga=788 initrd=/install.amd/initrd.gz --- quiet file=/cdrom/preseed.cfg '
+  
+  - copy: 
+      src: "{{ playbook_dir }}/grub.cfg"
+      dest: "{{ target_dir }}/iso/boot/grub"
+      force: yes
+
+  - name: Update MD5 Hash 1/3 
+    shell: 
+      cmd: "chmod +w {{ target_dir }}/iso/md5sum.txt"
+
+  - name: Update MD5 Hash 2/3 - write hashes
+    shell: 
+      cmd: "find '.' -follow -type f ! -name {{ target_dir }}/iso/md5sum.txt -print0 | xargs -0 md5sum | tee {{ target_dir }}/iso/md5sum.txt"
+
+  - name: Update MD5 Hash 3/3  
+    shell: 
+      cmd: "chmod -w {{ target_dir }}/iso/md5sum.txt"
+
+      #  - name: Repack the ISO (MBR)
+      # shell:
+      #cmd: "cd {{ target_dir }} &&  xorriso -as mkisofs -o debian_pve_autoinstall_{{ iso_arch }}.iso -isohybrid-mbr /usr/lib/ISOLINUX/isohdpfx.bin -c isolinux/boot.cat -b isolinux/isolinux.bin -no-emul-boot -boot-load-size 4 -boot-info-table iso"
+
+  - name: Repack the ISO (EFI)
+    shell:
+      cmd: "cd {{ target_dir }}/iso && xorriso -as mkisofs -o {{ target_dir }}/debian_pve_autoinstall_{{ iso_arch }}_efi.iso -quiet -r -V debian_pve_autoinstall_{{ iso_arch }} -J -joliet-long -cache-inodes -isohybrid-mbr /usr/lib/ISOLINUX/isohdpfx.bin -b isolinux/isolinux.bin -c isolinux/boot.cat -boot-load-size 4 -boot-info-table -no-emul-boot -eltorito-alt-boot -e boot/grub/efi.img -no-emul-boot -isohybrid-gpt-basdat -isohybrid-apm-hfsplus ."
+
+  - name: Make {{ target_dir }} writable
+    shell:
+      cmd: "chmod +w -R {{ target_dir }}/iso/"
+
+  - name: Done!
+    debug:
+      msg: "Done! The ISO file has been generated: {{target_dir}}/debian_pve_autoinstall_{{ iso_arch }}.iso"
