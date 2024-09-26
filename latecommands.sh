@@ -27,7 +27,7 @@ latecommands() {
     chmod 664 /etc/systemd/system/firstboot.service
     chmod 664 /etc/network/interfaces
     systemctl enable firstboot.service
-
+    systemctl mask getty@tty1.service
 }
 
 latecommands
