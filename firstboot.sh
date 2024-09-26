@@ -30,6 +30,10 @@ firstboot() {
        
     log "Removing unused Linux images"
     apt remove linux-image-amd64 'linux-image-6.1*' -y >> $LOGFILE 2>&1 | tee -a $TTY
+    sudo echo "LC_ALL=en_US.UTF-8" >> /etc/environment
+    sudo echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
+    sudo echo "LANG=en_US.UTF-8" > /etc/locale.conf
+    sudo locale-gen en_US.UTF-8
 
     log "Removing os-prober"
     apt remove os-prober -y >> $LOGFILE 2>&1 | tee -a $TTY
