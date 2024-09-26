@@ -88,12 +88,6 @@
         recurse: yes
         owner: splunk
         group: splunk
-    - name: Start Splunk
-      service:
-        name: Splunkd
-        state: started
-        enabled: yes
-
     - name: Update the systemd file for Splunk
       ini_file:
         path: "/etc/systemd/system/{{ splunk_service }}.service"
@@ -108,4 +102,11 @@
         - { option: "LimitDATA", value: "infinity" }
         - { option: "LimitCORE", value: "infinity" }
         - { option: "TasksMax", value: "infinity" }
-      notify: reload systemctl daemon
+        - name: Just force systemd to reread configs (2.4 and above)
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+    - name: Start Splunk and enable for boot
+      service:
+        name: Splunkd
+        state: started
+        enabled: yes
