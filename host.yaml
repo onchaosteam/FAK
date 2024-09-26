@@ -187,6 +187,7 @@
       command: "/tmp/velociraptor debian server -c /tmp/server.config.yml"
       args:
         creates: /tmp/velociraptor_server_0.72.4_amd64.deb
+        chdir: /tmp/
     - name: install Velociraptor
       apt:
         deb: /tmp/velociraptor_server_0.72.4_amd64.deb
