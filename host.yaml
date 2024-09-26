@@ -48,9 +48,57 @@
 - name: "Splunk"
   hosts: splunk
   become: true
+  vars:
+   splunk_exec : /opt/splunk/bin/splunk
+   splunk_service: splunkd
   tasks: 
     - name: Download Splunk cant use get_url due to bug
       ansible.builtin.shell: wget -O /tmp/splunk-9.3.1-0b8d769cb912-linux-2.6-amd64.deb "https://download.splunk.com/products/splunk/releases/9.3.1/linux/splunk-9.3.1-0b8d769cb912-linux-2.6-amd64.deb"
     - name: install Splunk
       apt:
         deb: /tmp/splunk-9.3.1-0b8d769cb912-linux-2.6-amd64.deb
+    - name: Disable transparent huge pages for performance
+      lineinfile:
+        path: /etc/sysfs.conf
+        line: |
+          kernel/mm/transparent_hugepage/enabled = never
+    - name: Update System Packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+    - name: Upload Splunk user seed file
+      ansible.builtin.shell: wget -O /opt/splunk/etc/system/local/user-seed.conf "https://raw.githubusercontent.com/onchaosteam/FAK/refs/heads/main/user-seed.conf'
+    - name: Setup Splunk
+      shell: /opt/splunk/bin/splunk start --accept-license --answer-yes --no-prompt
+    - name: Stop Splunk
+      shell: /opt/splunk/bin/splunk stop     
+    - name: Create Splunk Service
+      shell: /opt/splunk/bin/splunk enable boot-start -user splunk -systemd-managed 1    
+    - name: Recursively change ownership of a directory
+      file:
+        path: /opt/splunk
+        state: directory
+        recurse: yes
+        owner: splunk
+        group: splunk
+    - name: Start Splunk
+      service:
+        name: Splunkd
+        state: started
+        enabled: yes
+
+    - name: Update the systemd file for Splunk
+      ini_file:
+        path: "/etc/systemd/system/{{ splunk_service }}.service"
+        section: Service
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
+        mode: 0644
+      loop:
+        - { option: "LimitNOFILE", value: "1024000" }
+        - { option: "LimitNPROC", value: "512000" }
+        - { option: "LimitFSIZE", value: "infinity" }
+        - { option: "LimitDATA", value: "infinity" }
+        - { option: "LimitCORE", value: "infinity" }
+        - { option: "TasksMax", value: "infinity" }
+      notify: reload systemctl daemon
