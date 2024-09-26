@@ -91,7 +91,12 @@ EOF
     qm start 103
     qm start 104
     qm start 105
-    
+
+    # sleep to wait machine boot
+    sleep 2m
+    #hand off to ansible 
+    curl -sSL 'https://raw.githubusercontent.com/onchaosteam/FAK/refs/heads/main/host.yaml' -o "/root/host.yaml"
+    ansible-playbook /root/host.yaml
     log "Second boot process completed"
 }
 
