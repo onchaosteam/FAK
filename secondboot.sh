@@ -84,13 +84,11 @@ EOF
     qm clone $VMID 102 --full false --name Velociraptor
     qm clone $VMID 103 --full false --name Nessus
     qm clone $VMID 104 --full false --name NextCloud
-    qm clone $VMID 105 --full false --name CapeV2
 
     qm start 101
     qm start 102
     qm start 103
     qm start 104
-    qm start 105
 
     # sleep to wait machine boot
     sleep 2m
