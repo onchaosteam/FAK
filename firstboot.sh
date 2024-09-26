@@ -17,7 +17,7 @@ firstboot() {
     apt install postfix -y >> $LOGFILE 2>&1 | tee -a $TTY
     
     log "Updating /etc/hosts"
-    sed -i 's/127.0.1.1/10.71.6.98/' /etc/hosts
+    sed -i 's/127.0.1.1/10.71.6.25/' /etc/hosts
 
     log "Updating package lists"
     apt update >> $LOGFILE 2>&1 | tee -a $TTY
