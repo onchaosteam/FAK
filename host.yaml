@@ -67,7 +67,7 @@
         update_cache: yes
         upgrade: dist
     - name: Upload Splunk user seed file
-      ansible.builtin.shell: wget -O /opt/splunk/etc/system/local/user-seed.conf "https://raw.githubusercontent.com/onchaosteam/FAK/refs/heads/main/user-seed.conf'
+      ansible.builtin.shell: wget -O /opt/splunk/etc/system/local/user-seed.conf "https://raw.githubusercontent.com/onchaosteam/FAK/refs/heads/main/user-seed.conf"
     - name: Setup Splunk
       shell: /opt/splunk/bin/splunk start --accept-license --answer-yes --no-prompt
     - name: Stop Splunk
