@@ -54,7 +54,7 @@
       set_fact:
         ness_ip: "{{ ip_output | regex_search('inet (\\d*\\.\\d*\\.\\d*\\.\\d*)/', '\\1') | first }}"
 
-    - name: "Add Velo"
+    - name: "Add Nessus"
       add_host:
         name: nessus
         ansible_host: '{{ ness_ip }}'
@@ -135,8 +135,7 @@
   hosts: nessus
   become: true
   vars:
-   splunk_exec : /opt/splunk/bin/splunk
-   splunk_service: Splunkd
+  
   tasks: 
     - name: Download Latest Nessus
       ansible.builtin.shell: wget -O /tmp/Nessus-latest-ubuntu1604_amd64.deb "https://www.tenable.com/downloads/api/v2/pages/nessus/files/Nessus-latest-ubuntu1604_amd64.deb"
@@ -145,3 +144,55 @@
     - name: Install Nessus
       apt:
         deb: /tmp/Nessus-latest-ubuntu1604_amd64.deb
+    - name: Start Nessus and enable for boot
+      service:
+        name: nessusd
+        state: started
+        enabled: yes
+
+- name: "Velososorus Rex"
+  hosts: velo
+  become: true
+  vars:
+
+  tasks: 
+    - name: Download Latest Velo
+      ansible.builtin.shell: wget -O /tmp/velociraptor "https://github.com/Velocidex/velociraptor/releases/download/v0.72/velociraptor-v0.72.4-linux-amd64"
+      args: 
+        creates: /tmp/velociraptor
+    - name: Change file ownership, group and permissions
+      ansible.builtin.file:
+        path: /tmp/velociraptor
+        mode: '0700'
+    - name: Generate velociraptor server config
+      command: "/tmp/velociraptor config generate"
+      register: config_output
+    - name: Create Config File
+      ansible.builtin.copy:
+        content: "{{config_output.stdout}}"
+        dest: /tmp/server.config.yml
+      delegate_to: localhost
+    - name: Set Config
+      replace:
+        path: /tmp/server.config.yml
+        regexp: "  - https://localhost:8000/"
+        replace: "  - https://{{ ansible_default_ipv4.address }}:8000/"
+    - name: Set Config2
+      replace:
+        path: /tmp/server.config.yml
+        regexp: "  bind_address: 127.0.0.1"
+        replace: "  bind_address: {{ ansible_default_ipv4.address }}"
+        after: "GUI:"
+        before: "  gw_certificate:"
+    - name: Generate velociraptor server deb
+      command: "/tmp/velociraptor debian server -c /tmp/server.config.yml"
+      args:
+        creates: /tmp/velociraptor_server_0.72.4_amd64.deb
+    - name: install Velociraptor
+      apt:
+        deb: /tmp/velociraptor_server_0.72.4_amd64.deb
+    - name: Start Velociraptor and enable for boot
+      service:
+        name: velociraptor_server
+        state: started
+        enabled: yes
