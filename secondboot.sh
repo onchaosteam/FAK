@@ -79,26 +79,31 @@ EOF
 
     log "Reloading systemd daemon"
     systemctl daemon-reload
-
+    log "Provisioning Splunk Server"
     qm clone $VMID 101 --full false --name Splunk
+    log "Provisioning Velociraptor Server"
     qm clone $VMID 102 --full false --name Velociraptor
+    log "Provisioning Nessus Server"
     qm clone $VMID 103 --full false --name Nessus
+    log "Provisioning NextCloud Server"
     qm clone $VMID 104 --full false --name NextCloud
 
+    log "Starting Servers"
     qm start 101
     qm start 102
     qm start 103
     qm start 104
 
-    # sleep to wait machine boot
+    log "Waiting 2m for Servers to start"
     sleep 2m
 
     log "Second boot process completed"
     systemctl unmask getty@tty1.service
     systemctl start getty@tty1.service
-    #hand off to ansible 
+    log "Handing off to ansible"
     curl -sSL 'https://raw.githubusercontent.com/onchaosteam/FAK/refs/heads/main/host.yaml' -o "/root/host.yaml"
     ansible-playbook /root/host.yaml
+    
 }
 
 secondboot
