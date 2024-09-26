@@ -171,7 +171,6 @@
       ansible.builtin.copy:
         content: "{{config_output.stdout}}"
         dest: /tmp/server.config.yml
-      delegate_to: localhost
     - name: Set Config
       replace:
         path: /tmp/server.config.yml
