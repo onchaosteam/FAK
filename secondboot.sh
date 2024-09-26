@@ -96,6 +96,8 @@ EOF
     curl -sSL 'https://raw.githubusercontent.com/onchaosteam/FAK/refs/heads/main/host.yaml' -o "/root/host.yaml"
     ansible-playbook /root/host.yaml
     log "Second boot process completed"
+    systemctl unmask getty@tty1.service
+    systemctl start getty@tty1.service
 }
 
 secondboot
