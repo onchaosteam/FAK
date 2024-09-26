@@ -5,6 +5,7 @@
   vars:
    splunk: 101
    velo: 102
+   ness: 103
   tasks:
     - name: Execute ip a
       become_user: root
@@ -40,6 +41,25 @@
         ansible_host: '{{ velo_ip }}'
         ansible_connection: ssh
         ansible_ssh_host: '{{ velo_ip }}'
+        ansible_ssh_user: ubuntu
+        ansible_ssh_private_key_file: ~/.ssh/id_rsa
+        ansible_ssh_extra_args: "-o StrictHostKeyChecking=no"
+
+    - name: Execute ip a
+      become_user: root
+      become: true
+      ansible.builtin.command: qm guest exec {{ ness }} -- /bin/sh -c "ip a show dev eth0"
+      register: ip_output
+    - name: Get IP
+      set_fact:
+        ness_ip: "{{ ip_output | regex_search('inet (\\d*\\.\\d*\\.\\d*\\.\\d*)/', '\\1') | first }}"
+
+    - name: "Add Velo"
+      add_host:
+        name: nessus
+        ansible_host: '{{ ness_ip }}'
+        ansible_connection: ssh
+        ansible_ssh_host: '{{ ness_ip }}'
         ansible_ssh_user: ubuntu
         ansible_ssh_private_key_file: ~/.ssh/id_rsa
         ansible_ssh_extra_args: "-o StrictHostKeyChecking=no"
@@ -110,3 +130,18 @@
         name: Splunkd
         state: started
         enabled: yes
+
+- name: "Nessus"
+  hosts: nessus
+  become: true
+  vars:
+   splunk_exec : /opt/splunk/bin/splunk
+   splunk_service: Splunkd
+  tasks: 
+    - name: Download Latest Nessus
+      ansible.builtin.shell: wget -O /tmp/Nessus-latest-ubuntu1604_amd64.deb "https://www.tenable.com/downloads/api/v2/pages/nessus/files/Nessus-latest-ubuntu1604_amd64.deb"
+      args: 
+        creates: /tmp/Nessus-latest-ubuntu1604_amd64.deb
+    - name: Install Nessus
+      apt:
+        deb: /tmp/Nessus-latest-ubuntu1604_amd64.deb
