@@ -42,3 +42,4 @@ index=_internal sourcetype=splunkd group=tcpin_connections (connectionType=cooke
       </table>
     </panel>
   </row>
+</form>
