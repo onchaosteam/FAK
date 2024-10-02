@@ -93,14 +93,20 @@
       apt:
         update_cache: yes
         upgrade: dist
+    - name: Populate service facts
+      service_facts:
     - name: Upload Splunk user seed file
       ansible.builtin.shell: wget -O /opt/splunk/etc/system/local/user-seed.conf "https://raw.githubusercontent.com/onchaosteam/FAK/refs/heads/main/user-seed.conf"
+      when: "'Splunkd.service' not in services"
     - name: Setup Splunk
       shell: /opt/splunk/bin/splunk start --accept-license --answer-yes --no-prompt
+      when: "'Splunkd.service' not in services"
     - name: Stop Splunk
       shell: /opt/splunk/bin/splunk stop     
+      when: "'Splunkd.service' not in services"
     - name: Create Splunk Service
       shell: /opt/splunk/bin/splunk enable boot-start -user splunk -systemd-managed 1    
+      when: "'Splunkd.service' not in services"
     - name: Recursively change ownership of a directory
       file:
         path: /opt/splunk
@@ -125,11 +131,214 @@
     - name: Just force systemd to reread configs (2.4 and above)
       ansible.builtin.systemd_service:
         daemon_reload: true
+    - name: Setup Server Class Windows
+      ini_file:
+        path: "/opt/splunk/etc/system/local/serverclass.conf"
+        section: "serverClass:Windows"
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
+        mode: 0644
+      loop:
+        - { option: "machineTypesFilter", value: "windows-x64" }
+        - { option: "whitelist.0", value: "*" }
+    - name: Setup Server Class Linux
+      ini_file:
+        path: "/opt/splunk/etc/system/local/serverclass.conf"
+        section: "serverClass:Linux"
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
+        mode: 0644
+      loop:
+        - { option: "machineTypesFilter", value: "linux-x86_64" }
+        - { option: "whitelist.0", value: "*" }
+    - name: Setup Server Class Linux
+      ini_file:
+        path: "/opt/splunk/etc/system/local/serverclass.conf"
+        section: "serverClass:Linux:app:Splunk_TA_nix"
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
+        mode: 0644
+      loop:
+        - { option: "restartSplunkWeb", value: "0" }
+        - { option: "restartSplunkd", value: "1" }
+        - { option: "stateOnClient", value: "enabled" }  
+    - name: Setup Server Class Windows Sysmon
+      ini_file:
+        path: "/opt/splunk/etc/system/local/serverclass.conf"
+        section: "serverClass:Windows:app:Splunk_TA_microsoft_sysmon"
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
+        mode: 0644
+      loop:
+        - { option: "restartSplunkWeb", value: "0" }
+        - { option: "restartSplunkd", value: "1" }
+        - { option: "stateOnClient", value: "enabled" }          
+    - name: Setup Server Class Windows TA
+      ini_file:
+        path: "/opt/splunk/etc/system/local/serverclass.conf"
+        section: "serverClass:Windows:app:Splunk_TA_windows"
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
+        mode: 0644
+      loop:
+        - { option: "restartSplunkWeb", value: "0" }
+        - { option: "restartSplunkd", value: "1" }
+        - { option: "stateOnClient", value: "enabled" }    
+    - name: Setup Server SSL
+      ini_file:
+        path: "/opt/splunk/etc/system/local/web.conf"
+        section: "settings"
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
+        mode: 0644
+      loop:
+        - { option: "enableSplunkWebSSL", value: "1" } 
+
+    - name: Download Splunk apps
+      ansible.builtin.shell: wget -O /tmp/{{ item.file }} "https://10.71.4.148/{{ item.file }}" --no-check-certificate
+      args: 
+        creates: /tmp/{{ item.file }}     
+      loop:
+        - { file: "splunk-add-on-for-microsoft-windows_890.tgz" }
+        - { file: "splunk-add-on-for-sysmon_401.tgz" }
+        - { file: "splunk-add-on-for-unix-and-linux_920.tgz" }
+                
+    - name: Unarchive a file that is already on the remote machine
+      ansible.builtin.unarchive:
+        src: /tmp/{{ item.file }}
+        dest: /opt/splunk/etc/deployment-apps
+        remote_src: yes
+      loop:
+        - { file: "splunk-add-on-for-microsoft-windows_890.tgz" }
+        - { file: "splunk-add-on-for-sysmon_401.tgz" }
+        - { file: "splunk-add-on-for-unix-and-linux_920.tgz" }
+
+    - name: Creates directory
+      ansible.builtin.file:
+        path: /opt/splunk/etc/deployment-apps/Splunk_TA_microsoft_sysmon/local/
+        state: directory
+
+    - name: Copy file with owner and permissions
+      ansible.builtin.copy:
+         src: /opt/splunk/etc/deployment-apps/Splunk_TA_microsoft_sysmon/default/inputs.conf
+         dest: /opt/splunk/etc/deployment-apps/Splunk_TA_microsoft_sysmon/local/inputs.conf
+         owner: splunk
+         group: splunk
+         mode: '0644'
+         remote_src: yes
+
+    - name: Setup Splunk_TA_microsoft_sysmon  TA Inputs 
+      ini_file:
+        path: "/opt/splunk/etc/deployment-apps/Splunk_TA_microsoft_sysmon/local/inputs.conf"
+        section: "{{ item.section }}"
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
+        mode: 0644
+      loop:
+        - { section: "WinEventLog://Microsoft-Windows-Sysmon/Operational", option: "index", value: "wineventlog" }
+        - { section: "WinEventLog://Microsoft-Windows-Sysmon/Operational", option: "disabled", value: "false" }
+        - { section: "WinEventLog://Microsoft-Windows-Sysmon/Operational", option: "source", value: "XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" }
+        - { section: "WinEventLog://Microsoft-Windows-Sysmon/Operational", option: "renderXml", value: "1" }
+
+    - name: Creates directory
+      ansible.builtin.file:
+        path: /opt/splunk/etc/deployment-apps/Splunk_TA_windows/local/
+        state: directory
+
+    - name: Copy file with owner and permissions
+      ansible.builtin.copy:
+         src: /opt/splunk/etc/deployment-apps/Splunk_TA_windows/default/inputs.conf
+         dest: /opt/splunk/etc/deployment-apps/Splunk_TA_windows/local/inputs.conf
+         owner: splunk
+         group: splunk
+         mode: '0644'
+         remote_src: yes
+
+    - name: Creates directory
+      ansible.builtin.file:
+        path: /opt/splunk/etc/deployment-apps/Splunk_TA_nix/local/
+        state: directory
+
+    - name: Copy file with owner and permissions
+      ansible.builtin.copy:
+         src: /opt/splunk/etc/deployment-apps/Splunk_TA_nix/default/inputs.conf
+         dest: /opt/splunk/etc/deployment-apps/Splunk_TA_nix/local/inputs.conf
+         owner: splunk
+         group: splunk
+         mode: '0644'
+         remote_src: yes
+    - name: Setup Linux  TA Inputs 
+      ini_file:
+        path: "/opt/splunk/etc/deployment-apps/Splunk_TA_nix/local/inputs.conf"
+        section: "{{ item.section }}"
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
+        mode: 0644
+      loop:
+        - { section: "monitor:///etc", option: "index", value: "linux" }
+        - { section: "monitor:///etc", option: "disabled", value: "0" }
+        - { section: "monitor:///var/log", option: "index", value: "linux" }
+        - { section: "monitor:///var/log", option: "disabled", value: "0" }
+        - { section: "monitor:///root/.bash_history", option: "index", value: "linux" }
+        - { section: "monitor:///root/.bash_history", option: "disabled", value: "0" }
+        - { section: "monitor:///home/*/.bash_history", option: "index", value: "linux" }
+        - { section: "monitor:///home/*/.bash_history", option: "disabled", value: "0" }
+        
+    - name: Setup Windows TA Inputs 
+      ini_file:
+        path: "/opt/splunk/etc/deployment-apps/Splunk_TA_windows/local/inputs.conf"
+        section: "{{ item.section }}"
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
+        mode: 0644
+      loop:
+        - { section: "WinEventLog://Application", option: "index", value: "wineventlog" }
+        - { section: "WinEventLog://Application", option: "disabled", value: "0" }
+        - { section: "WinEventLog://Security", option: "index", value: "wineventlog" }
+        - { section: "WinEventLog://Security", option: "disabled", value: "0" }
+        - { section: "WinEventLog://Microsoft-Windows-PowerShell/Operational", option: "index", value: "wineventlog" }
+        - { section: "WinEventLog://Microsoft-Windows-PowerShell/Operational", option: "disabled", value: "0" }
+        - { section: "WinEventLog://Microsoft-Windows-PowerShell/Operational", option: "renderXml", value: "true" }
+        - { section: "WinEventLog://Microsoft-Windows-PowerShell/Operational", option: "current_only", value: "0" }
+        - { section: "WinEventLog://Microsoft-Windows-PowerShell/Operational", option: "checkpointInterval", value: "5" }
+        - { section: "WinEventLog://Microsoft-Windows-PowerShell/Operational", option: "start_from", value: "oldest" }
+        - { section: "powershell", option: "interval", value: "-1" }
+        - { section: "powershell2", option: "interval", value: "-1" }
+        - { section: "admon", option: "interval", value: "-1" }
+        - { section: "WinRegMon", option: "interval", value: "-1" }
+        - { section: "WinNetMon", option: "interval", value: "-1" }
+        - { section: "MonitorNoHandle", option: "interval", value: "-1" }
+        - { section: "WinPrintMon", option: "interval", value: "-1" }
+
+    - name: Create Index
+      ini_file:
+        path: "/opt/splunk/etc/apps/Search/local/index.conf"
+        section: "{{ item.section }}"
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
+        mode: 0644
+      loop:
+        - { section: "wineventlog", option: "homePath", value: "SPLUNK_DB/wineventlog/db" }
+        - { section: "wineventlog", option: "coldPath", value: "SPLUNK_DB/wineventlog/colddb" }
+        - { section: "wineventlog", option: "maxDataSize", value: "auto_high_volume" }
+        - { section: "wineventlog", option: "maxTotalDataSizeMB", value: "500" }
+        - { section: "wineventlog", option: "coldPath", value: "SPLUNK_DB/wineventlog/thaweddb" }
+        - { section: "linux", option: "homePath", value: "SPLUNK_DB/wineventlog/db" }
+        - { section: "linux", option: "coldPath", value: "SPLUNK_DB/wineventlog/colddb" }
+        - { section: "linux", option: "maxDataSize", value: "auto_high_volume" }
+        - { section: "linux", option: "maxTotalDataSizeMB", value: "500" }
+        - { section: "linux", option: "coldPath", value: "SPLUNK_DB/wineventlog/thaweddb" }
+        
+    - name: Just force systemd to reread configs (2.4 and above)
+      ansible.builtin.systemd_service:
+        daemon_reload: true    
     - name: Start Splunk and enable for boot
       service:
         name: Splunkd
         state: started
         enabled: yes
+      when: ansible_facts.services['Splunkd.service'].state == 'stopped'
+
 
 - name: "Nessus"
   hosts: nessus
