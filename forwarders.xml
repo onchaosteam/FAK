@@ -1,0 +1,44 @@
+<form version="1.1" theme="dark">
+  <label>Forwarder Connections</label>
+  <description>Displays a list of all connected forwarders and their most recent connections</description>
+  <fieldset submitButton="false">
+    <input type="time" token="field1">
+      <label></label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <table>
+        <search>
+          <query>| tstats latest(_time) as latest where index=wineventlog , source=XmlWinEventLog:Microsoft-Windows-Sysmon/Operational by source,host | eval latest=now()- latest, latest=latest/60| rename latest as "Sysmon Log Minutes" , host as hostname | join hostname [search 
+index=_internal sourcetype=splunkd group=tcpin_connections (connectionType=cooked OR connectionType=cookedSSL) fwdType=uf guid=* | stats  max(_time) as last_connected,  by guid, hostname,sourceHost |  eval hostname = upper(hostname), last_connected=now() - last_connected , last_connected=last_connected/60 | rename last_connected as "Last Log Minutes" ] | table hostname , sourceHost,  "Sysmon Log Minutes", "Last Log Minutes"</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <format type="number" field="Last Connected Minutes"></format>
+        <format type="color" field="Last Connected Minutes">
+          <colorPalette type="list">[#118832,#1182F3,#CBA700,#D94E17,#D41F1F]</colorPalette>
+          <scale type="threshold">1,2,3,4</scale>
+        </format>
+        <format type="color" field="Last Log Minutes">
+          <colorPalette type="list">[#118832,#CBA700,#D41F1F]</colorPalette>
+          <scale type="threshold">3,5</scale>
+        </format>
+        <format type="color" field="Sysmon Log Minutes">
+          <colorPalette type="list">[#118832,#CBA700,#D41F1F]</colorPalette>
+          <scale type="threshold">3,5</scale>
+        </format>
+        <format type="number" field="Last Log Minutes">
+          <option name="precision">1</option>
+        </format>
+        <format type="number" field="Sysmon Log Minutes">
+          <option name="precision">1</option>
+        </format>
+      </table>
+    </panel>
+  </row>
