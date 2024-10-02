@@ -64,7 +64,6 @@
         ansible_ssh_private_key_file: ~/.ssh/id_rsa
         ansible_ssh_extra_args: "-o StrictHostKeyChecking=no"
 
-
 - name: "Splunk"
   hosts: splunk
   become: true
@@ -310,9 +309,9 @@
         - { section: "MonitorNoHandle", option: "interval", value: "-1" }
         - { section: "WinPrintMon", option: "interval", value: "-1" }
 
-    - name: Create Index
+    - name: Create Indext
       ini_file:
-        path: "/opt/splunk/etc/apps/Search/local/index.conf"
+        path: "/opt/splunk/etc/apps/search/local/index.conf"
         section: "{{ item.section }}"
         option: "{{ item.option }}"
         value: "{{ item.value }}"
@@ -328,7 +327,44 @@
         - { section: "linux", option: "maxDataSize", value: "auto_high_volume" }
         - { section: "linux", option: "maxTotalDataSizeMB", value: "500" }
         - { section: "linux", option: "coldPath", value: "SPLUNK_DB/wineventlog/thaweddb" }
-        
+
+    - name: Enable Fowarder input
+      ini_file:
+        path: "/opt/splunk/etc/system/local/inputs.conf"
+        section: "{{ item.section }}"
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
+        mode: 0644
+      loop:
+        - { section: "splunktcp://9997", option: "disabled", value: "0" }
+
+    - name: Creates directory
+      ansible.builtin.file:
+        path: /opt/splunk/etc/apps/cyber/default/data/ui/nav
+        state: directory
+    - name: Creates directory
+      ansible.builtin.file:
+        path: /opt/splunk/etc/apps/cyber/default/data/ui/views
+        state: directory
+    - name: Download Dashbaord 1
+      ansible.builtin.shell: wget -O /opt/splunk/etc/apps/cyber/default/data/ui/nav/default.xml "https://raw.githubusercontent.com/onchaosteam/FAK/refs/heads/main/default.xml"        
+    - name: Download Dashbaord 1
+      ansible.builtin.shell: wget -O /opt/splunk/etc/apps/cyber/default/data/ui/views/forwarders.xml "https://raw.githubusercontent.com/onchaosteam/FAK/refs/heads/main/forwarders.xml"     
+    - name: Create App
+      ini_file:
+        path: "/opt/splunk/etc/apps/cyber/default/app.conf"
+        section: "{{ item.section }}"
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
+        mode: 0644
+      loop:
+        - { section: "install", option: "is_configured", value: "0" }
+        - { section: "ui", option: "is_visible", value: "1" }
+        - { section: "ui", option: "label", value: "Cyber" }
+        - { section: "launcher", option: "author", value: "Cyber" }
+        - { section: "launcher", option: "description", value: "Cyber" }
+        - { section: "launcher", option: "version", value: "0.0.1" }
+
     - name: Just force systemd to reread configs (2.4 and above)
       ansible.builtin.systemd_service:
         daemon_reload: true    
