@@ -1,5 +1,5 @@
 <nav search_view="search">
-  <view name="fowarders" default='true' />
+  <view name="forwarders" default='true' />
   <view name="search"/>
   <view name="dashboards" />
 </nav>
